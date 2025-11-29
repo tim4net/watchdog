@@ -1,0 +1,18 @@
+[Unit]
+Description=Watchdog Agent - AI-powered topic monitoring
+Documentation=https://github.com/user/watchdog-agent
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/watchdog-agent daemon --verbose
+Restart=on-failure
+RestartSec=30
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+# Set your API key here or in the config file
+# Environment=ANTHROPIC_API_KEY=sk-ant-...
+
+[Install]
+WantedBy=default.target

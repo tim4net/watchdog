@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Watchdog Manager
+Comment=Manage AI-powered topic monitoring
+Exec=watchdog-manager
+Icon=view-list-details
+Terminal=false
+Categories=Utility;System;
+Keywords=monitor;watch;ai;topics;
