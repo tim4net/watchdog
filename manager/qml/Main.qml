@@ -13,90 +13,6 @@ Kirigami.ApplicationWindow {
     minimumWidth: 400
     minimumHeight: 400
 
-    // Topic editor dialog
-    Kirigami.Dialog {
-        id: topicEditor
-        title: isNewTopic ? "Add Topic" : "Edit Topic"
-        standardButtons: Kirigami.Dialog.Save | Kirigami.Dialog.Cancel
-        preferredWidth: Kirigami.Units.gridUnit * 25
-
-        property string originalName: ""
-        property bool isNewTopic: false
-
-        onAccepted: {
-            if (isNewTopic) {
-                backend.addTopicManual(
-                    editName.text,
-                    editDescription.text,
-                    editQueries.text,
-                    editUrls.text,
-                    editInterval.value
-                )
-            } else {
-                backend.updateTopic(
-                    originalName,
-                    editName.text,
-                    editDescription.text,
-                    editQueries.text,
-                    editUrls.text,
-                    editInterval.value
-                )
-            }
-        }
-
-        ColumnLayout {
-            spacing: Kirigami.Units.smallSpacing
-
-            Controls.Label { text: "Name:" }
-            Controls.TextField {
-                id: editName
-                Layout.fillWidth: true
-            }
-
-            Controls.Label { text: "Description:" }
-            Controls.TextField {
-                id: editDescription
-                Layout.fillWidth: true
-            }
-
-            Controls.Label { text: "Search Queries (one per line):" }
-            Controls.TextArea {
-                id: editQueries
-                Layout.fillWidth: true
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 4
-            }
-
-            Controls.Label { text: "URLs to Check (one per line):" }
-            Controls.TextArea {
-                id: editUrls
-                Layout.fillWidth: true
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-            }
-
-            RowLayout {
-                Controls.Label { text: "Check every:" }
-                Controls.SpinBox {
-                    id: editInterval
-                    from: 1
-                    to: 168
-                    value: 24
-                }
-                Controls.Label { text: "hours" }
-            }
-        }
-
-        function openWith(name, description, queries, urls, interval) {
-            isNewTopic = (name === "")
-            originalName = name
-            editName.text = name
-            editDescription.text = description
-            editQueries.text = queries
-            editUrls.text = urls
-            editInterval.value = interval
-            open()
-        }
-    }
-
     ChatBackend {
         id: backend
 
@@ -161,7 +77,15 @@ Kirigami.ApplicationWindow {
                 Layout.fillWidth: true
                 enabled: !backend.busy
                 onClicked: {
-                    topicEditor.openWith("", "", "", "", 24)
+                    pageStack.push(editorPage, {
+                        isNewTopic: true,
+                        originalName: "",
+                        topicName: "",
+                        topicDescription: "",
+                        topicQueries: "",
+                        topicUrls: "",
+                        topicInterval: 24
+                    })
                 }
             }
 
@@ -211,13 +135,15 @@ Kirigami.ApplicationWindow {
                 onClicked: {
                     var topic = backend.getTopicDetails(model.name)
                     if (topic) {
-                        topicEditor.openWith(
-                            topic.name,
-                            topic.description,
-                            topic.search_queries.join("\n"),
-                            topic.urls_to_check.join("\n"),
-                            topic.check_interval_hours
-                        )
+                        pageStack.push(editorPage, {
+                            isNewTopic: false,
+                            originalName: topic.name,
+                            topicName: topic.name,
+                            topicDescription: topic.description,
+                            topicQueries: topic.search_queries.join("\n"),
+                            topicUrls: topic.urls_to_check.join("\n"),
+                            topicInterval: topic.check_interval_hours
+                        })
                     }
                 }
 
@@ -234,13 +160,15 @@ Kirigami.ApplicationWindow {
                         onTriggered: {
                             var topic = backend.getTopicDetails(model.name)
                             if (topic) {
-                                topicEditor.openWith(
-                                    topic.name,
-                                    topic.description,
-                                    topic.search_queries.join("\n"),
-                                    topic.urls_to_check.join("\n"),
-                                    topic.check_interval_hours
-                                )
+                                pageStack.push(editorPage, {
+                                    isNewTopic: false,
+                                    originalName: topic.name,
+                                    topicName: topic.name,
+                                    topicDescription: topic.description,
+                                    topicQueries: topic.search_queries.join("\n"),
+                                    topicUrls: topic.urls_to_check.join("\n"),
+                                    topicInterval: topic.check_interval_hours
+                                })
                             }
                         }
                     },
@@ -262,6 +190,118 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    // Editor page component
+    Component {
+        id: editorPage
+
+        Kirigami.ScrollablePage {
+            id: editPage
+            title: isNewTopic ? "Add Topic" : "Edit Topic"
+
+            property bool isNewTopic: false
+            property string originalName: ""
+            property alias topicName: editName.text
+            property alias topicDescription: editDescription.text
+            property alias topicQueries: editQueries.text
+            property alias topicUrls: editUrls.text
+            property alias topicInterval: editInterval.value
+
+            actions: [
+                Kirigami.Action {
+                    text: "Save"
+                    icon.name: "document-save"
+                    onTriggered: {
+                        if (isNewTopic) {
+                            backend.addTopicManual(
+                                editName.text,
+                                editDescription.text,
+                                editQueries.text,
+                                editUrls.text,
+                                editInterval.value
+                            )
+                        } else {
+                            backend.updateTopic(
+                                originalName,
+                                editName.text,
+                                editDescription.text,
+                                editQueries.text,
+                                editUrls.text,
+                                editInterval.value
+                            )
+                        }
+                        pageStack.pop()
+                    }
+                },
+                Kirigami.Action {
+                    text: "Cancel"
+                    icon.name: "dialog-cancel"
+                    onTriggered: pageStack.pop()
+                }
+            ]
+
+            ColumnLayout {
+                spacing: Kirigami.Units.largeSpacing
+
+                Kirigami.FormLayout {
+                    Layout.fillWidth: true
+
+                    Controls.TextField {
+                        id: editName
+                        Kirigami.FormData.label: "Name:"
+                        Layout.fillWidth: true
+                        placeholderText: "e.g., Fedora 44 Release"
+                    }
+
+                    Controls.TextField {
+                        id: editDescription
+                        Kirigami.FormData.label: "Description:"
+                        Layout.fillWidth: true
+                        placeholderText: "What to monitor for"
+                    }
+
+                    Controls.TextArea {
+                        id: editQueries
+                        Kirigami.FormData.label: "Search Queries:"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+                        placeholderText: "One search query per line\ne.g., Fedora 44 release date 2025"
+                    }
+
+                    Controls.TextArea {
+                        id: editUrls
+                        Kirigami.FormData.label: "URLs to Check:"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+                        placeholderText: "One URL per line (optional)\ne.g., https://fedoramagazine.org/"
+                    }
+
+                    RowLayout {
+                        Kirigami.FormData.label: "Check Interval:"
+
+                        Controls.SpinBox {
+                            id: editInterval
+                            from: 1
+                            to: 168
+                            value: 24
+                        }
+
+                        Controls.Label {
+                            text: "hours"
+                        }
+                    }
+                }
+
+                Kirigami.InlineMessage {
+                    Layout.fillWidth: true
+                    type: Kirigami.MessageType.Information
+                    text: "Tip: Include years (2024, 2025) in search queries for better recency filtering"
+                    visible: editQueries.text.length > 0 && !editQueries.text.includes("202")
+                }
+            }
+        }
+    }
+
+    // Chat page
     pageStack.initialPage: Kirigami.Page {
         title: "Chat"
 
